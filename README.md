@@ -16,7 +16,16 @@ This project demonstrates building a **backend service in modern C++** using an 
 - Compute average temperature
 - Retrieve stored telemetry data
 - JSON request/response support
-- Simple unit test
+- Strongly typed counters, gauges, histograms, timers, and summaries
+- Async structured event pipeline with batching, sampling, rate limiting, and bounded queues
+- Pluggable stdout, file, HTTP, TCP, and UDP sinks with retry/backoff isolation
+- JSON serializer with sink-independent payload contracts
+- Prometheus scrape endpoint and OTLP-ready JSON metrics export endpoint
+- Health endpoint, runtime diagnostics, and server-sent live telemetry stream
+- Threshold alert engine with cooldowns and notifier abstraction
+- Hot-reloadable typed configuration with environment overrides
+- Unit, concurrency, serialization, and sink failure tests
+- clang-tidy, cppcheck, CI, and coverage build support
 
 ---
 
@@ -149,26 +158,92 @@ Example response:
 
 ---
 
+### GET /health
+
+Returns process health and lightweight runtime diagnostics.
+
+```
+curl http://localhost:8080/health
+```
+
+---
+
+### GET /metrics
+
+Returns Prometheus-compatible metrics.
+
+```
+curl http://localhost:8080/metrics
+```
+
+---
+
+### GET /otlp/v1/metrics
+
+Returns schema-tagged JSON metrics through the OTLP-ready exporter abstraction.
+
+```
+curl http://localhost:8080/otlp/v1/metrics
+```
+
+---
+
+### GET /telemetry/live
+
+Streams accepted telemetry events as server-sent events.
+
+```
+curl -N http://localhost:8080/telemetry/live
+```
+
+---
+
+## Configuration
+
+Set `TELEMETRY_CONFIG` to a JSON config file. Environment variables such as `TELEMETRY_PORT`, `TELEMETRY_QUEUE_SIZE`, `TELEMETRY_BATCH_SIZE`, `TELEMETRY_WORKERS`, and `TELEMETRY_SAMPLING_RATE` override file values.
+
+Example:
+
+```json
+{
+  "pipeline": {
+    "queue_size": 8192,
+    "batch_size": 128,
+    "worker_count": 2,
+    "flush_interval_ms": 1000,
+    "overflow_policy": "drop_newest",
+    "sampling_rate": 1.0
+  },
+  "sinks": [
+    {"type": "stdout", "name": "stdout"},
+    {"type": "file", "name": "events", "target": "telemetry.log"}
+  ],
+  "alerts": [
+    {"name": "high_temperature", "metric": "sensor_temperature_celsius", "op": ">", "threshold": 80, "cooldown_ms": 30000}
+  ]
+}
+```
+
+---
+
 ## Running Tests
 
 From the build directory:
 
 ```
-./telemetry_test
+ctest --output-on-failure
 ```
-
-If the program exits successfully, the test passed.
 
 ---
 
-## Future Improvements
+## Tooling
 
-- Input validation
-- Structured logging
-- Persistent storage (PostgreSQL)
-- Authentication
-- Docker containerization
-- Advanced telemetry analytics
+```
+cmake -S . -B build -DTELEMETRY_ENABLE_CLANG_TIDY=ON
+cmake --build build
+cmake --build build --target cppcheck
+cmake -S . -B build-coverage -DTELEMETRY_ENABLE_COVERAGE=ON
+```
 
 ---
 

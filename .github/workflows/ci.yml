@@ -1,0 +1,49 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tooling
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ cppcheck clang-tidy
+
+      - name: Configure
+        run: cmake -S . -B build -DTELEMETRY_ENABLE_CLANG_TIDY=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Static analysis
+        run: cmake --build build --target cppcheck
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tooling
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ lcov
+
+      - name: Configure coverage
+        run: cmake -S . -B build-coverage -DTELEMETRY_ENABLE_COVERAGE=ON
+
+      - name: Build
+        run: cmake --build build-coverage --parallel
+
+      - name: Test
+        run: ctest --test-dir build-coverage --output-on-failure
+
+      - name: Capture coverage
+        run: |
+          lcov --capture --directory build-coverage --output-file coverage.info
+          lcov --remove coverage.info '/usr/*' '*/include/httplib.h' '*/include/nlohmann/*' --output-file coverage.info
+          lcov --summary coverage.info

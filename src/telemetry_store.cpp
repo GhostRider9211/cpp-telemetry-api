@@ -6,13 +6,13 @@ void TelemetryStore::add(const Telemetry& t)
     data.push_back(t);
 }
 
-std::vector<Telemetry> TelemetryStore::get_all()
+std::vector<Telemetry> TelemetryStore::get_all() const
 {
     std::lock_guard<std::mutex> lock(mtx);
     return data;
 }
 
-double TelemetryStore::avg_temperature()
+double TelemetryStore::avg_temperature() const
 {
     std::lock_guard<std::mutex> lock(mtx);
 
@@ -25,4 +25,10 @@ double TelemetryStore::avg_temperature()
         sum += t.temperature;
 
     return sum / data.size();
+}
+
+std::size_t TelemetryStore::size() const
+{
+    std::lock_guard<std::mutex> lock(mtx);
+    return data.size();
 }
