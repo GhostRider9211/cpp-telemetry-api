@@ -60,6 +60,7 @@ function(add_telemetry_test target source)
 endfunction()
 
 add_telemetry_test(telemetry_test tests/telemetry_test.cpp)
+add_telemetry_test(config_test tests/config_test.cpp)
 add_telemetry_test(metrics_test tests/metrics_test.cpp)
 add_telemetry_test(pipeline_test tests/pipeline_test.cpp)
 add_telemetry_test(serialization_test tests/serialization_test.cpp)

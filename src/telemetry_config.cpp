@@ -140,7 +140,7 @@ TelemetryConfig ConfigLoader::from_file(const std::string& path)
 
 void ConfigLoader::apply_environment(TelemetryConfig& config)
 {
-    config.monitoring.port = env_int("TELEMETRY_PORT", config.monitoring.port);
+    config.monitoring.port = env_int("TELEMETRY_PORT", env_int("PORT", config.monitoring.port));
     config.pipeline.queue_size = env_size("TELEMETRY_QUEUE_SIZE", config.pipeline.queue_size);
     config.pipeline.batch_size = env_size("TELEMETRY_BATCH_SIZE", config.pipeline.batch_size);
     config.pipeline.worker_count = env_size("TELEMETRY_WORKERS", config.pipeline.worker_count);

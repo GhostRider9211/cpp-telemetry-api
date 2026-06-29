@@ -100,6 +100,18 @@ http://0.0.0.0:8080
 
 Use `TELEMETRY_PORT` or a JSON config file to change the port.
 
+## Deploy on Render
+
+The repository includes a multi-stage Dockerfile and a render.yaml Blueprint.
+
+1. Push the repository to GitHub.
+2. In Render, create a new Blueprint and connect the repository.
+3. Render builds the Docker image and checks /health before making the service live.
+
+The server reads Render's PORT environment variable automatically. TELEMETRY_PORT remains available as an explicit override.
+
+After deployment, verify https://your-service.onrender.com/health.
+
 ## API
 
 ### `POST /telemetry`

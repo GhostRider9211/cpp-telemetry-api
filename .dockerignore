@@ -1,0 +1,13 @@
+.git
+.github
+.vscode
+build
+build-*
+CMakeFiles
+Testing
+*.log
+*.gcda
+*.gcno
+*.gcov
+coverage.info
+telemetry.log
