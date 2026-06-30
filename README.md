@@ -4,6 +4,24 @@ A C++17 telemetry ingestion service for accepting IoT sensor readings, storing r
 
 The project combines a small REST API with a telemetry pipeline: incoming readings update metrics, generate structured events, flow through a bounded asynchronous queue, and can be exported to stdout, files, HTTP endpoints, TCP, or UDP sinks.
 
+## 🚀 Live Deployment
+
+The Telemetry API is deployed on **Render** using a **multi-stage Docker build** with automatic health checks. Runtime metrics are securely exposed through a Prometheus-compatible endpoint and visualized using **Grafana Cloud**.
+
+### Live Links
+
+- **API Health Endpoint:** https://your-service.onrender.com/health
+- **Grafana Dashboard:** https://jumbopeach1255.grafana.net/public-dashboards/5eb8f1deb72d4fa6b1ed6b0e22ae938e
+
+> **Note**
+>
+> - The root endpoint (`/`) is intentionally not implemented. Use the `/health` endpoint to verify the service is running.
+> - The `/metrics` endpoint is protected using Bearer token authentication via the `TELEMETRY_METRICS_TOKEN` environment variable and is intended for Prometheus/Grafana Cloud scraping.
+
+### Grafana Dashboard
+
+![Grafana Dashboard](assests/grafana-dashboard.png)
+
 ## Features
 
 - REST API built with C++17 and `cpp-httplib`
@@ -137,7 +155,7 @@ Telemetry added
 Invalid JSON or missing fields return `400`:
 
 ```json
-{"error":"invalid telemetry payload"}
+{ "error": "invalid telemetry payload" }
 ```
 
 ### `GET /telemetry`
@@ -168,7 +186,7 @@ curl http://localhost:8080/stats
 ```
 
 ```json
-{"avg_temperature":25.5,"count":1}
+{ "avg_temperature": 25.5, "count": 1 }
 ```
 
 ### `POST /flush`
@@ -290,11 +308,15 @@ Supported sink `type` values:
 For `http`, `tcp`, and `udp` sinks, set `target` to the destination URL or host/port, for example:
 
 ```json
-{"type":"http","name":"collector","target":"http://localhost:4318/events"}
+{
+  "type": "http",
+  "name": "collector",
+  "target": "http://localhost:4318/events"
+}
 ```
 
 ```json
-{"type":"udp","name":"udp-collector","target":"udp://localhost:9000"}
+{ "type": "udp", "name": "udp-collector", "target": "udp://localhost:9000" }
 ```
 
 Supported overflow policies:
@@ -313,13 +335,13 @@ Supported alert operators:
 
 Environment variables override file values for selected runtime settings:
 
-| Variable | Description |
-| --- | --- |
-| `TELEMETRY_CONFIG` | Path to a JSON config file |
-| `TELEMETRY_PORT` | HTTP server port |
-| `TELEMETRY_QUEUE_SIZE` | Main pipeline queue size |
-| `TELEMETRY_BATCH_SIZE` | Pipeline batch size |
-| `TELEMETRY_WORKERS` | Number of pipeline worker threads |
+| Variable                  | Description                             |
+| ------------------------- | --------------------------------------- |
+| `TELEMETRY_CONFIG`        | Path to a JSON config file              |
+| `TELEMETRY_PORT`          | HTTP server port                        |
+| `TELEMETRY_QUEUE_SIZE`    | Main pipeline queue size                |
+| `TELEMETRY_BATCH_SIZE`    | Pipeline batch size                     |
+| `TELEMETRY_WORKERS`       | Number of pipeline worker threads       |
 | `TELEMETRY_SAMPLING_RATE` | Event sampling rate from `0.0` to `1.0` |
 
 When `TELEMETRY_CONFIG` is set, the file is watched and pipeline settings are reloaded while the process is running. Sinks and alert rules are loaded during startup.
