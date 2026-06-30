@@ -6,12 +6,27 @@
 namespace telemetry
 {
 
+namespace
+{
+
+bool metrics_request_authorized(const httplib::Request& request, const std::string& token)
+{
+    if(token.empty())
+        return true;
+
+    return request.has_header("Authorization")
+        && request.get_header_value("Authorization") == "Bearer " + token;
+}
+
+} // namespace
+
 void register_monitoring_routes(
     httplib::Server& server,
     MetricRegistry& registry,
     TelemetryPipeline& pipeline,
     Diagnostics& diagnostics,
-    const Serializer& serializer)
+    const Serializer& serializer,
+    const std::string& metrics_bearer_token)
 {
     auto prometheus_exporter = std::make_shared<PrometheusExporter>();
     auto otlp_exporter = std::make_shared<OtlpJsonMetricExporter>(serializer);
@@ -27,7 +42,15 @@ void register_monitoring_routes(
         res.set_content(body.dump(), "application/json");
     });
 
-    server.Get("/metrics", [&registry, prometheus_exporter](const httplib::Request&, httplib::Response& res) {
+    server.Get("/metrics", [&registry, prometheus_exporter, metrics_bearer_token](const httplib::Request& req, httplib::Response& res) {
+        if(!metrics_request_authorized(req, metrics_bearer_token))
+        {
+            res.status = 401;
+            res.set_header("WWW-Authenticate", "Bearer");
+            res.set_content(R"({"error":"unauthorized"})", "application/json");
+            return;
+        }
+
         const auto payload = prometheus_exporter->export_metrics(registry.snapshot());
         res.set_content(payload_to_string(payload), payload.content_type);
     });

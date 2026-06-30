@@ -7,6 +7,8 @@
 #include "telemetry_pipeline.hpp"
 #include "telemetry_serializer.hpp"
 
+#include <string>
+
 namespace telemetry
 {
 
@@ -15,6 +17,7 @@ void register_monitoring_routes(
     MetricRegistry& registry,
     TelemetryPipeline& pipeline,
     Diagnostics& diagnostics,
-    const Serializer& serializer);
+    const Serializer& serializer,
+    const std::string& metrics_bearer_token);
 
 } // namespace telemetry

@@ -87,7 +87,8 @@ int main()
     auto request_latency = registry.summary("http_request_duration_seconds", {"HTTP request duration", "seconds"});
     auto active_requests = registry.gauge("http_active_requests", {"Active HTTP requests"});
 
-    telemetry::register_monitoring_routes(svr, registry, pipeline, diagnostics, *serializer);
+    telemetry::register_monitoring_routes(
+        svr, registry, pipeline, diagnostics, *serializer, config.monitoring.metrics_bearer_token);
 
     svr.Post("/telemetry", [&](const httplib::Request& req, httplib::Response& res) {
         active_requests->increment(1.0);

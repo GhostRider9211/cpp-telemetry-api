@@ -45,6 +45,7 @@ struct MonitoringConfig
     bool enabled{true};
     std::string host{"0.0.0.0"};
     int port{8080};
+    std::string metrics_bearer_token;
 };
 
 struct AlertRuleConfig

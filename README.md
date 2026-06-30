@@ -100,6 +100,8 @@ http://0.0.0.0:8080
 
 Use `TELEMETRY_PORT` or a JSON config file to change the port.
 
+Set TELEMETRY_METRICS_TOKEN to require Bearer authentication on /metrics. Grafana Cloud Hosted Collector requires the metrics endpoint to be authenticated.
+
 ## Deploy on Render
 
 The repository includes a multi-stage Dockerfile and a render.yaml Blueprint.
