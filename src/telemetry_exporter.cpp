@@ -12,12 +12,12 @@ SerializedPayload PrometheusExporter::export_metrics(const std::vector<MetricSna
     return payload;
 }
 
-OtlpJsonMetricExporter::OtlpJsonMetricExporter(const Serializer& metric_serializer)
+JsonMetricExporter::JsonMetricExporter(const Serializer& metric_serializer)
     : serializer(metric_serializer)
 {
 }
 
-SerializedPayload OtlpJsonMetricExporter::export_metrics(const std::vector<MetricSnapshot>& metrics) const
+SerializedPayload JsonMetricExporter::export_metrics(const std::vector<MetricSnapshot>& metrics) const
 {
     return serializer.serialize_metrics(metrics);
 }

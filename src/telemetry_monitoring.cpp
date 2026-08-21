@@ -29,7 +29,7 @@ void register_monitoring_routes(
     const std::string& metrics_bearer_token)
 {
     auto prometheus_exporter = std::make_shared<PrometheusExporter>();
-    auto otlp_exporter = std::make_shared<OtlpJsonMetricExporter>(serializer);
+    auto json_exporter = std::make_shared<JsonMetricExporter>(serializer);
 
     server.Get("/health", [&diagnostics](const httplib::Request&, httplib::Response& res) {
         const auto runtime = diagnostics.snapshot();
@@ -55,8 +55,16 @@ void register_monitoring_routes(
         res.set_content(payload_to_string(payload), payload.content_type);
     });
 
-    server.Get("/otlp/v1/metrics", [&registry, otlp_exporter](const httplib::Request&, httplib::Response& res) {
-        const auto payload = otlp_exporter->export_metrics(registry.snapshot());
+    server.Get("/metrics/json", [&registry, json_exporter, metrics_bearer_token](const httplib::Request& req, httplib::Response& res) {
+        if(!metrics_request_authorized(req, metrics_bearer_token))
+        {
+            res.status = 401;
+            res.set_header("WWW-Authenticate", "Bearer");
+            res.set_content(R"({"error":"unauthorized"})", "application/json");
+            return;
+        }
+
+        const auto payload = json_exporter->export_metrics(registry.snapshot());
         res.set_content(payload_to_string(payload), payload.content_type);
     });
 

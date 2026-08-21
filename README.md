@@ -6,19 +6,21 @@ The project combines a small REST API with a telemetry pipeline: incoming readin
 
 ## 🚀 Live Deployment
 
-The Telemetry API is deployed on **Render** using a **multi-stage Docker build** with automatic health checks. Runtime metrics are securely exposed through a Prometheus-compatible endpoint and visualized using **Grafana Cloud**.
+The Telemetry API is deployed on **Render** using a **multi-stage Docker build** with automatic health checks. Runtime metrics are exposed through a protected Prometheus-compatible /metrics endpoint and can be scraped and visualized by external monitoring systems such as Prometheus and Grafana Cloud.
 
 ### Live Links
 
-- **API Health Endpoint:** https://your-service.onrender.com/health
+- **API Health Endpoint:** https://telemetry-api-s3b2.onrender.com/health
 - **Grafana Dashboard:** https://jumbopeach1255.grafana.net/public-dashboards/5eb8f1deb72d4fa6b1ed6b0e22ae938e
 
 > **Note**
 >
 > - The root endpoint (`/`) is intentionally not implemented. Use the `/health` endpoint to verify the service is running.
-> - The `/metrics` endpoint is protected using Bearer token authentication via the `TELEMETRY_METRICS_TOKEN` environment variable and is intended for Prometheus/Grafana Cloud scraping.
+> - The `/metrics` endpoint is protected using Bearer authentication via `TELEMETRY_METRICS_TOKEN` and is intended to be scraped by Prometheus-compatible monitoring systems such as Grafana Cloud.
 
-### Grafana Dashboard
+### External Grafana Visualization
+
+The `/metrics` endpoint exposes Prometheus-compatible metrics that can be scraped by an external Prometheus-compatible monitoring setup and visualized in Grafana.
 
 ![Grafana Dashboard](assests/grafana-dashboard.png)
 
@@ -31,16 +33,16 @@ The Telemetry API is deployed on **Render** using a **multi-stage Docker build**
 - Structured event logging with correlation and request IDs
 - Asynchronous telemetry pipeline with batching, sampling, rate limiting, and overflow policies
 - Bounded per-sink queues with retry and exponential backoff
-- Sink implementations for stdout, file, HTTP, TCP, and UDP
+- Configurable sink implementations for stdout, file, HTTP, TCP, and UDP
 - Counters, gauges, histograms, timers, and summaries
 - Prometheus-compatible metrics endpoint
-- OTLP-ready JSON metrics endpoint
+- JSON metrics endpoint through the exporter abstraction
 - Health endpoint with process diagnostics
 - Server-sent event stream for live telemetry events
 - Threshold alert engine with cooldowns and stdout notifications
 - JSON configuration with environment variable overrides
-- Config file watcher for runtime pipeline updates
-- Unit tests for storage, metrics, pipeline behavior, serialization, and sink failures
+- Config file watcher for selected runtime pipeline settings
+- Unit tests for storage, configuration, metrics, pipeline behavior, serialization, and sink failures
 - Optional `clang-tidy`, `cppcheck`, and coverage build support
 
 ## Tech Stack
@@ -130,7 +132,7 @@ The repository includes a multi-stage Dockerfile and a render.yaml Blueprint.
 
 The server reads Render's PORT environment variable automatically. TELEMETRY_PORT remains available as an explicit override.
 
-After deployment, verify https://your-service.onrender.com/health.
+After deployment, verify https://telemetry-api-s3b2.onrender.com/health.
 
 ## API
 
@@ -221,12 +223,12 @@ curl http://localhost:8080/metrics
 
 Metrics include HTTP request timing, active requests, pipeline counters, sink drops, and sensor reading metrics.
 
-### `GET /otlp/v1/metrics`
+### `GET /metrics/json`
 
-Returns metrics as schema-tagged JSON through the OTLP-ready exporter abstraction.
+Returns application metrics as schema-tagged JSON through the exporter abstraction.
 
 ```bash
-curl http://localhost:8080/otlp/v1/metrics
+curl http://localhost:8080/metrics/json
 ```
 
 ### `GET /telemetry/live`
@@ -250,14 +252,10 @@ $env:TELEMETRY_CONFIG = "telemetry.config.json"
 .\build\Debug\telemetry_api.exe
 ```
 
-Example config:
+Example `telemetry.config.json`:
 
 ```json
 {
-  "monitoring": {
-    "host": "0.0.0.0",
-    "port": 8080
-  },
   "pipeline": {
     "queue_size": 8192,
     "batch_size": 128,
@@ -274,20 +272,28 @@ Example config:
     },
     {
       "type": "file",
-      "name": "events-file",
-      "target": "telemetry.log",
-      "queue_size": 4096,
-      "overflow_policy": "drop_oldest",
-      "retry": {
-        "max_attempts": 3,
-        "initial_backoff_ms": 50,
-        "max_backoff_ms": 2000
-      }
+      "name": "telemetry-file",
+      "target": "telemetry.log"
+    },
+    {
+      "type": "http",
+      "name": "http-demo",
+      "target": "http://localhost:9000/events"
+    },
+    {
+      "type": "tcp",
+      "name": "tcp-demo",
+      "target": "tcp://localhost:9001"
+    },
+    {
+      "type": "udp",
+      "name": "udp-demo",
+      "target": "udp://localhost:9002"
     }
   ],
   "alerts": [
     {
-      "name": "high_temperature",
+      "name": "high-temperature",
       "metric": "sensor_temperature_celsius",
       "op": ">",
       "threshold": 80,
@@ -297,6 +303,12 @@ Example config:
 }
 ```
 
+### Using Sinks
+
+- **stdout and file sinks:** These sinks can work immediately without any external receiver.
+- **HTTP, TCP, and UDP sinks:** These network sinks require a reachable downstream receiver listening at the specified destination for end-to-end delivery.
+- **Localhost targets:** Using `localhost` as a target (like in the example above) is only suitable when the external receiver is running on the very same machine or container as the telemetry service.
+
 Supported sink `type` values:
 
 - `stdout`
@@ -305,19 +317,7 @@ Supported sink `type` values:
 - `tcp`
 - `udp`
 
-For `http`, `tcp`, and `udp` sinks, set `target` to the destination URL or host/port, for example:
-
-```json
-{
-  "type": "http",
-  "name": "collector",
-  "target": "http://localhost:4318/events"
-}
-```
-
-```json
-{ "type": "udp", "name": "udp-collector", "target": "udp://localhost:9000" }
-```
+For network sinks (`http`, `tcp`, and `udp`), the configured target must be reachable from the telemetry service and must have a compatible receiver listening at the specified destination.
 
 Supported overflow policies:
 
@@ -344,7 +344,7 @@ Environment variables override file values for selected runtime settings:
 | `TELEMETRY_WORKERS`       | Number of pipeline worker threads       |
 | `TELEMETRY_SAMPLING_RATE` | Event sampling rate from `0.0` to `1.0` |
 
-When `TELEMETRY_CONFIG` is set, the file is watched and pipeline settings are reloaded while the process is running. Sinks and alert rules are loaded during startup.
+When `TELEMETRY_CONFIG` is set, the configuration file can be watched for runtime updates to supported pipeline settings. Sink and alert configuration is loaded during startup.
 
 ## Tests
 
@@ -359,6 +359,7 @@ ctest --test-dir build --output-on-failure
 The configured tests are:
 
 - `telemetry_test`
+- `config_test`
 - `metrics_test`
 - `pipeline_test`
 - `serialization_test`

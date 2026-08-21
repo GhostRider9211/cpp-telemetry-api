@@ -22,13 +22,13 @@ public:
     SerializedPayload export_metrics(const std::vector<MetricSnapshot>& metrics) const override;
 };
 
-class OtlpJsonMetricExporter final : public MetricExporter
+class JsonMetricExporter final : public MetricExporter
 {
 private:
     const Serializer& serializer;
 
 public:
-    explicit OtlpJsonMetricExporter(const Serializer& metric_serializer);
+    explicit JsonMetricExporter(const Serializer& metric_serializer);
     SerializedPayload export_metrics(const std::vector<MetricSnapshot>& metrics) const override;
 };
 

@@ -1,0 +1,46 @@
+{
+  "pipeline": {
+    "queue_size": 8192,
+    "batch_size": 128,
+    "worker_count": 2,
+    "flush_interval_ms": 1000,
+    "overflow_policy": "drop_newest",
+    "sampling_rate": 1.0,
+    "rate_limit_per_second": 0
+  },
+  "sinks": [
+    {
+      "type": "stdout",
+      "name": "console"
+    },
+    {
+      "type": "file",
+      "name": "telemetry-file",
+      "target": "telemetry.log"
+    },
+    {
+      "type": "http",
+      "name": "http-demo",
+      "target": "http://localhost:9000/events"
+    },
+    {
+      "type": "tcp",
+      "name": "tcp-demo",
+      "target": "tcp://localhost:9001"
+    },
+    {
+      "type": "udp",
+      "name": "udp-demo",
+      "target": "udp://localhost:9002"
+    }
+  ],
+  "alerts": [
+    {
+      "name": "high-temperature",
+      "metric": "sensor_temperature_celsius",
+      "op": ">",
+      "threshold": 80,
+      "cooldown_ms": 30000
+    }
+  ]
+}
